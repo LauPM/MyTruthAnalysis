@@ -1,0 +1,12 @@
+BEGIN_PROLOG
+
+my_analysis : #Your chosen name for this parameter set 
+{
+  module_type  :       "MyAnalysis" #Links the fhicl file to the analysis module using the name you gave your analyzer class
+  TruthLabel:		       "largeant"
+  # TruthLabel:		       "generator"
+  EdepLabel:           "IonAndScint"
+  RollUpUnsavedIDs:	   "true" 
+}
+
+END_PROLOG
