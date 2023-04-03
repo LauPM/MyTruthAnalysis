@@ -42,10 +42,11 @@
 #include "lardataobj/RawData/OpDetWaveform.h"
 #include "lardataobj/AnalysisBase/Calorimetry.h"
 #include "larcore/CoreUtils/ServiceUtil.h"
-#include "larcore/Geometry/Geometry.h"
-#include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
-#include "larcorealg/Geometry/GeometryCore.h"
+#include "larcore/Geometry/Geometry.h" // DetSim Analysis
+#include "larcorealg/Geometry/GeometryCore.h" // DetSim Analysis
+#include "larcoreobj/SimpleTypesAndConstants/geo_types.h"// DetSim Analysis
 #include "lardata/ArtDataHelper/TrackUtils.h"
+#include "lardata/ArtDataHelper/HitCreator.h" // RawDigit
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larsim/MCCheater/BackTracker.h"
 #include "larsim/Utils/TruthMatchUtils.h"
@@ -74,6 +75,8 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+
+// #include "duneana/DAQSimAna/TriggerPrimitiveFinderTool.h"
 
 #include "dunereco/AnaUtils/DUNEAnaEventUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaPFParticleUtils.h"
@@ -119,6 +122,10 @@ class ana::MyAnalysis : public art::EDAnalyzer
     const geo::Geometry* fGeom;
     std::string fTruthLabel;
     std::string fEdepLabel;
+    std::string fDetSimLabel;
+    std::string fEdepInstanceLabel;
+    std::string fRawDigInstanceLabel;
+    std::string fSimChaInstanceLabel;
     bool fRollUpUnsavedIDs;
 
     //==================//
@@ -173,7 +180,13 @@ class ana::MyAnalysis : public art::EDAnalyzer
     double fMCParticleEndTime          [kNMaxMCParticles];
     int    fMCParticleNHits            [kNMaxMCParticles];
     int    fMCParticleNHitsView        [kNMaxMCParticles][kNViews];
-    
+
+    /////////////////////
+    //Ancestor information
+    std::map<int, int> TrackIDMap;
+    std::map<int, int> ParentMap;
+    std::map<int, int> AncestorMap;
+
     /////////////////////
     //SimEnergyDeposited
     int fSimEdepTrackID[kNMaxMCParticles];
@@ -182,6 +195,13 @@ class ana::MyAnalysis : public art::EDAnalyzer
     double fSimEdepX   [kNMaxMCParticles];
     double fSimEdepY   [kNMaxMCParticles];
     double fSimEdepZ   [kNMaxMCParticles];
+
+    /////////////////////
+    //Detector Hits Info
+    std::vector<Int_t> channels;
+    std::vector<Int_t> tdc;
+    std::vector<Int_t> adc;
+    std::vector<Int_t> view;
 
 }; //End class definition
 
@@ -197,10 +217,14 @@ ana::MyAnalysis::MyAnalysis(fhicl::ParameterSet const & p)
 void ana::MyAnalysis::reconfigure(fhicl::ParameterSet const& p)
 {
   // assign fTruthLabel in the constructor using the parameter defined in MyAnalysis.fcl
-  fTruthLabel       = p.get<std::string>("TruthLabel");
-  fEdepLabel      = p.get<std::string>("EdepLabel");
-  fRollUpUnsavedIDs = p.get<bool>("RollUpUnsavedIDs"); 
-  fGeom             = &*art::ServiceHandle<geo::Geometry>();
+  fTruthLabel          = p.get<std::string>("TruthLabel");
+  fEdepLabel           = p.get<std::string>("EdepLabel");
+  fDetSimLabel         = p.get<std::string>("DetSimLabel");
+  fRawDigInstanceLabel = p.get<std::string>("RawDigInstance");
+  fSimChaInstanceLabel = p.get<std::string>("SimChaInstance");
+  fEdepInstanceLabel   = p.get<std::string>("InstanceName");
+  fRollUpUnsavedIDs    = p.get<bool>("RollUpUnsavedIDs"); 
+  fGeom                = &*art::ServiceHandle<geo::Geometry>();
 } // Reconfigure
 
 
@@ -251,19 +275,27 @@ void ana::MyAnalysis::beginJob()
   fTree->Branch("mcParticleNHits",             &fMCParticleNHits,             "MCParticleNHits[nMCParticles]/I");
   fTree->Branch("mcParticleNHitsView",         &fMCParticleNHitsView,         "MCParticleNHitsView[nMCParticles][3]/I");
   
+  // ANCESTOR INFORMATION //
+  fTree->Branch("TrackIDMap",         &TrackIDMap);
+  fTree->Branch("ParentMap",          &ParentMap);
+  fTree->Branch("AncestorMap",        &AncestorMap);
+  fTree->Branch("Channels",     &channels);
+  fTree->Branch("TDC",     &tdc);
+  fTree->Branch("ADC",     &adc);
+  fTree->Branch("View",     &view);
+
   fTree->Branch("SimEdepTrackID",         &fSimEdepTrackID         ,"SimEdepTrackID[nMCParticles]/I");
   fTree->Branch("SimEdepPDGCode",         &fSimEdepPDGCode         ,"SimEdepPDGCode[nMCParticles]/I");
   fTree->Branch("SimEdepEnergy",          &fSimEdepE          ,"fSimEdepE[nMCParticles]/D");
   fTree->Branch("SimEdepMiddlePositionX", &fSimEdepX ,"SimEdepX[nMCParticles]/D");
   fTree->Branch("SimEdepMiddlePositionY", &fSimEdepY ,"SimEdepY[nMCParticles]/D");
   fTree->Branch("SimEdepMiddlePositionZ", &fSimEdepZ ,"SimEdepZ[nMCParticles]/D");
-
 }//beginJob
 
 
 void ana::MyAnalysis::analyze(const art::Event & evt)
 {
-  std::map<int, int> TrackIDMap;
+
   // reset(); //Don't deep clean
   const art::ServiceHandle<cheat::BackTrackerService> btServ;
   fEventID  = evt.id().event();
@@ -315,18 +347,36 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
         fMCParticleEndMomentumZ    [iMc] = trueParticle.EndMomentum().Z();
         fMCParticleEndMomentumE    [iMc] = trueParticle.EndMomentum().E();
         
+        ParentMap[trueParticle.TrackId()] = trueParticle.Mother();
 
-        TrackIDMap[trueParticle.TrackId()] = iMc;
+        int mother = trueParticle.Mother();
+        int ancestry_level = 0; 
+        if (mother != 0) 
+        {
+          while(ancestry_level < 20) 
+          {
+            ancestry_level++ ;
+            int track_id = mother;
+            mother = ParentMap[track_id];
+            if (mother == 0) break;
+          }
+        }
+        
+        AncestorMap[trueParticle.TrackId()] = ancestry_level;
+        // std::cout<< "LEVEL " << AncestorMap[trueParticle.TrackId()]  << std::endl;
+        TrackIDMap [trueParticle.TrackId()] = iMc;
 
       } //for loop filling MCInfo  
     } //if mcParticles.isValid()
 
   } //if !evt.isRealData()
-
+    
   // Access Deposited Energy
   if (fEdepLabel != "")
   {
-    auto EdepHandle = evt.getHandle<std::vector<sim::SimEnergyDeposit>>(fEdepLabel);
+    // auto EdepHandle = evt.getValidHandle<std::vector<sim::SimEnergyDeposit>>(fEdepLabel);
+    art::Handle<std::vector<sim::SimEnergyDeposit>> EdepHandle;
+    evt.getByLabel(fEdepLabel, fEdepInstanceLabel, EdepHandle);
     if(!EdepHandle.isValid())
     {
       std::cout<<"Unable to find std::vector<sim::SimEnergyDeposit> with module label: " << fEdepLabel << std::endl;
@@ -334,6 +384,7 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
     } // !EdepHandle
     if(EdepHandle.isValid())
     {
+
       for(auto edep : *EdepHandle) 
       {
         int particle_id = TrackIDMap[edep.TrackID()];
@@ -347,6 +398,69 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
     }                     
   }
 
+  // Access Detector Hits //
+
+  if (fDetSimLabel != "")
+  {
+    art::Handle<std::vector<sim::SimChannel>> SimChaHandle;
+    evt.getByLabel(fDetSimLabel, fSimChaInstanceLabel, SimChaHandle);
+    if(!SimChaHandle.isValid())
+    {
+      std::cout<<"Unable to find std::vector<sim::SimChannel> with module label: " << fDetSimLabel << "; Instance: " << fSimChaInstanceLabel << std::endl;
+      return;
+    } // !DetSimHandle
+    
+    art::Handle<std::vector<raw::RawDigit>> RawDigHandle;
+    evt.getByLabel(fDetSimLabel, fRawDigInstanceLabel, RawDigHandle);
+    if(!RawDigHandle.isValid())
+    {
+      std::cout<<"Unable to find std::vector<raw::RawDigit> with module label: " << fDetSimLabel << "; Instance: " << fRawDigInstanceLabel << std::endl;
+      return;
+    } // !RawDigHandle
+
+    if(SimChaHandle.isValid() && RawDigHandle.isValid())
+    {
+      std::vector<sim::SimChannel> sim_channels; 
+      for(auto sim_channel : *SimChaHandle) { sim_channels.push_back(sim_channel); }
+
+      std::cout << "HERE: " << std::endl;
+
+      for(auto digit : *RawDigHandle)
+      {
+        auto channel     = digit.Channel();
+        auto sim_channel = sim_channels[channel];
+
+        int num_samples = digit.Samples();
+        int pedestal    = (int)digit.GetPedestal();
+        
+        // uncompress the digits and remove the pedestal
+        std::vector<short> uncompressed(num_samples);
+        raw::Uncompress( digit.ADCs(), uncompressed, pedestal, digit.Compression());
+        for (int ii = 0; ii < num_samples; ii++) { uncompressed[ii] -= pedestal; }
+
+        // which wire plane
+        geo::GeometryCore const* geometry_core = lar::providerFrom<geo::Geometry>();
+        // std::cout << "Channel: " << channel << " View: " << geometry_core->View(channel) << std::endl;
+        // std::cout << "Number of samples: " << num_samples << std::endl;
+        for(int l = 0; l < num_samples; l++)
+        {
+          //auto const& trackIDsAndEnergy = sim_channel.TrackIDsAndEnergies(l, l);
+          if(std::abs(uncompressed[l]) > 20.0) // ADC threshold > 20
+          {
+            // std::cout << "l: " << l << std::endl;
+            channels.push_back(channel); 
+            // std::cout << "ch: " << channels[l] << std::endl;
+            tdc.push_back(l);
+            // std::cout << "tdc: " <<  tdc[l] << std::endl;
+            adc.push_back(uncompressed[l]);
+            // std::cout << "adc: " << adc[l] << std::endl;
+            view.push_back(geometry_core->View(channel));
+            // std::cout << "view: " << view[l] << std::endl;
+          }
+        }
+      }
+    }
+  }
   fTree->Fill();
 
 }// analyze()

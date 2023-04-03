@@ -2,11 +2,27 @@ BEGIN_PROLOG
 
 my_analysis : #Your chosen name for this parameter set 
 {
-  module_type  :       "MyAnalysis" #Links the fhicl file to the analysis module using the name you gave your analyzer class
-  TruthLabel:		       "largeant"
+  module_type  :      "MyAnalysis" #Links the fhicl file to the analysis module using the name you gave your analyzer class
+  TruthLabel:		      "largeant"
+  
+  # DUNE FD 1x2x6 mymuon#
+  EdepLabel:          "IonAndScint"
+  InstanceName :      ""
+  DetSimLabel:        "tpcrawdecoder"
+  RawDigInstance:     "daq"
+  SimChaInstance:     "simpleSC"
+  
+  # ProtoDUNE-SP  mymuon#
+  # EdepLabel:           "largeant"
+  # InstanceName :       "LArG4DetectorServicevolTPCActiveInner"
+  
+  # ProtoDUNE-SP  singlepion#
+  # EdepLabel:           "largeant"
+  # InstanceName :       "priorSCE"
+  
   # TruthLabel:		       "generator"
-  EdepLabel:           "IonAndScint"
-  RollUpUnsavedIDs:	   "true" 
+  
+  RollUpUnsavedIDs:	  "true" 
 }
 
 END_PROLOG

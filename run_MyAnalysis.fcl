@@ -25,11 +25,11 @@ services:
 # ProtoDUNE I geometry ##
 # services: 
 # {
-#     @table::protodune_services   
 #     TFileService: {fileName: "MyAnalysis.root"} # Output filename
 #     TimeTracker:  {}
 #     FileCatalogMetadata: @local::art_file_catalog_mc
 #     Geometry:            @local::protodunev7_geo 
+#                          @table::protodune_services 
 # } 
 
 
