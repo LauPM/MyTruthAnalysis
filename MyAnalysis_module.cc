@@ -140,7 +140,7 @@ class ana::MyAnalysis : public art::EDAnalyzer
     unsigned int fRunID;
     unsigned int fSubRunID;
 
-    static const int kNMaxMCParticles = 100000;
+    static const int kNMaxMCParticles = 1000000;
     static const int kNMaxPFParticles = 2000;
     static const int kNMaxPFPClusters = 100;
     static const int kNViews          = 3;
@@ -187,6 +187,33 @@ class ana::MyAnalysis : public art::EDAnalyzer
     std::map<int, int> ParentMap;
     std::map<int, int> AncestorMap;
 
+    int TrackIDMap_keys [kNMaxMCParticles];
+    int TrackIDMap_values [kNMaxMCParticles];
+    int ParentMap_keys  [kNMaxMCParticles];
+    int ParentMap_values  [kNMaxMCParticles];
+    int AncestorMap_keys[kNMaxMCParticles];    
+    int AncestorMap_values[kNMaxMCParticles];
+
+    // std::vector<std::map<int, int>> TrackIDMap_vector ;
+    // std::vector<int> TrackIDMap_keys_aux;
+    // std::vector<int> TrackIDMap_values_aux;
+    // std::vector<int> TrackIDMap_keys;
+    // std::vector<int> TrackIDMap_values;
+    // std::vector<std::map<int, int>> ParentMap_vector  ;
+    // std::vector<int> ParentMap_keys_aux;
+    // std::vector<int> ParentMap_values_aux;
+    // std::vector<int> ParentMap_keys;
+    // std::vector<int> ParentMap_values;
+    // std::vector<std::map<int, int>> AncestorMap_vector;
+    // std::vector<int> AncestorMap_keys_aux;
+    // std::vector<int> AncestorMap_values_aux;
+    // std::vector<int> AncestorMap_keys;
+    // std::vector<int> AncestorMap_values;
+
+    // std::map<int, int> TrackIDMap_vector[11] ;
+    // std::map<int, int> ParentMap_vector[11]  ;
+    // std::map<int, int> AncestorMap_vector[11];
+
     /////////////////////
     //SimEnergyDeposited
     int fSimEdepTrackID[kNMaxMCParticles];
@@ -198,10 +225,15 @@ class ana::MyAnalysis : public art::EDAnalyzer
 
     /////////////////////
     //Detector Hits Info
-    std::vector<Int_t> channels;
-    std::vector<Int_t> tdc;
-    std::vector<Int_t> adc;
-    std::vector<Int_t> view;
+    // std::vector<Int_t> channels;
+    // std::vector<Int_t> tdc;
+    // std::vector<Int_t> adc;
+    // std::vector<Int_t> view;
+
+    int channels[kNMaxMCParticles];
+    int tdc     [kNMaxMCParticles];
+    int adc     [kNMaxMCParticles];
+    int view    [kNMaxMCParticles];
 
 }; //End class definition
 
@@ -276,16 +308,34 @@ void ana::MyAnalysis::beginJob()
   fTree->Branch("mcParticleNHitsView",         &fMCParticleNHitsView,         "MCParticleNHitsView[nMCParticles][3]/I");
   
   // ANCESTOR INFORMATION //
-  fTree->Branch("TrackIDMap",         &TrackIDMap);
-  fTree->Branch("ParentMap",          &ParentMap);
-  fTree->Branch("AncestorMap",        &AncestorMap);
-  fTree->Branch("Channels",     &channels);
-  fTree->Branch("TDC",     &tdc);
-  fTree->Branch("ADC",     &adc);
-  fTree->Branch("View",     &view);
+  // fTree->Branch("TrackIDMap",         &TrackIDMap,  "TrackIDMap[nMCParticles]/I");
+  // fTree->Branch("ParentMap",          &ParentMap,   "ParentMap[nMCParticles]/I");
+  // fTree->Branch("AncestorMap",        &AncestorMap, "AncestorMap[nMCParticles]/I");
+  // fTree->Branch("TrackIDMap",         &TrackIDMap);
+  // fTree->Branch("ParentMap",          &ParentMap);
+  // fTree->Branch("AncestorMap",        &AncestorMap);
 
-  fTree->Branch("SimEdepTrackID",         &fSimEdepTrackID         ,"SimEdepTrackID[nMCParticles]/I");
-  fTree->Branch("SimEdepPDGCode",         &fSimEdepPDGCode         ,"SimEdepPDGCode[nMCParticles]/I");
+  // fTree->Branch("TrackIDMap",  &TrackIDMap_vector , "TrackIDMap[nMCParticles]/I");
+  // fTree->Branch("ParentMap",   &ParentMap_vector  , "ParentMap[nMCParticles]/I");
+  // fTree->Branch("AncestorMap", &AncestorMap_vector, "AncestorMap[nMCParticles]/I");
+
+  // fTree->Branch("TrackIDMap_keys",    &TrackIDMap_keys ,   "TrackIDMap_keys/I");
+  // fTree->Branch("ParentMap_keys",     &ParentMap_keys  ,   "ParentMap_keys/I");
+  // fTree->Branch("AncestorMap_keys",   &AncestorMap_keys,   "AncestorMap_keys/I");
+  fTree->Branch("TrackIDMap_values",  &TrackIDMap_values,  "TrackIDMap_values[nMCParticles]/I");
+  fTree->Branch("TrackIDMap_keys",    &TrackIDMap_keys,    "TrackIDMap_keys[nMCParticles]/I");
+  fTree->Branch("ParentMap_values",   &ParentMap_values ,  "ParentMap_values[nMCParticles]/I");
+  fTree->Branch("ParentMap_keys",     &ParentMap_keys,     "ParentMap_keys[nMCParticles]/I");   
+  fTree->Branch("AncestorMap_values", &AncestorMap_values, "AncestorMap_values[nMCParticles]/I");
+  fTree->Branch("AncestorMap_keys",   &AncestorMap_keys,   "AncestorMap_keys[nMCParticles]/I");
+
+  fTree->Branch("Channels",&channels,"Channels[nMCParticles]/I");
+  fTree->Branch("TDC",     &tdc,     "TDC[nMCParticles]/I");
+  fTree->Branch("ADC",     &adc,     "ADC[nMCParticles]/I");
+  fTree->Branch("View",    &view,    "View[nMCParticles]/I");
+
+  fTree->Branch("SimEdepTrackID",         &fSimEdepTrackID    ,"SimEdepTrackID[nMCParticles]/I");
+  fTree->Branch("SimEdepPDGCode",         &fSimEdepPDGCode    ,"SimEdepPDGCode[nMCParticles]/I");
   fTree->Branch("SimEdepEnergy",          &fSimEdepE          ,"fSimEdepE[nMCParticles]/D");
   fTree->Branch("SimEdepMiddlePositionX", &fSimEdepX ,"SimEdepX[nMCParticles]/D");
   fTree->Branch("SimEdepMiddlePositionY", &fSimEdepY ,"SimEdepY[nMCParticles]/D");
@@ -297,6 +347,7 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
 {
 
   // reset(); //Don't deep clean
+
   const art::ServiceHandle<cheat::BackTrackerService> btServ;
   fEventID  = evt.id().event();
   fRunID    = evt.id().run();
@@ -306,6 +357,8 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
   std::cout << "=============== EVENT ID " << fEventID << " == RUN ID " << fRunID << " == SUBRUN ID " << fSubRunID << " ================" << std::endl;
 
   //Access the truth information//
+
+
   if(!evt.isRealData())
   {
     art::ValidHandle<std::vector<simb::MCParticle>> mcParticles = evt.getValidHandle<std::vector<simb::MCParticle>>(fTruthLabel);
@@ -349,8 +402,7 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
         
         ParentMap[trueParticle.TrackId()] = trueParticle.Mother();
 
-        int mother = trueParticle.Mother();
-        int ancestry_level = 0; 
+        int mother = trueParticle.Mother(); int ancestry_level = 0; 
         if (mother != 0) 
         {
           while(ancestry_level < 20) 
@@ -363,14 +415,22 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
         }
         
         AncestorMap[trueParticle.TrackId()] = ancestry_level;
-        // std::cout<< "LEVEL " << AncestorMap[trueParticle.TrackId()]  << std::endl;
         TrackIDMap [trueParticle.TrackId()] = iMc;
+        // std::cout<< "LEVEL " << AncestorMap[trueParticle.TrackId()]  << std::endl;
+
+        TrackIDMap_keys[iMc]    = trueParticle.TrackId();
+        TrackIDMap_values[iMc]  = iMc;
+        AncestorMap_keys[iMc]   = trueParticle.TrackId();
+        AncestorMap_values[iMc] = ancestry_level;
+        ParentMap_keys[iMc]     = trueParticle.TrackId();
+        ParentMap_values[iMc]   = trueParticle.Mother();
 
       } //for loop filling MCInfo  
     } //if mcParticles.isValid()
-
   } //if !evt.isRealData()
-    
+
+
+
   // Access Deposited Energy
   if (fEdepLabel != "")
   {
@@ -387,7 +447,9 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
 
       for(auto edep : *EdepHandle) 
       {
+        // std::cout << "TrackID (dep): " << edep.TrackID() << std::endl;
         int particle_id = TrackIDMap[edep.TrackID()];
+        // std::cout << "particle_id: " << particle_id << std::endl;
         fSimEdepTrackID [particle_id] = edep.TrackID();
         fSimEdepPDGCode [particle_id] = edep.PdgCode();
         fSimEdepX[particle_id] = edep.MidPointX();
@@ -399,7 +461,6 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
   }
 
   // Access Detector Hits //
-
   if (fDetSimLabel != "")
   {
     art::Handle<std::vector<sim::SimChannel>> SimChaHandle;
@@ -420,47 +481,126 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
 
     if(SimChaHandle.isValid() && RawDigHandle.isValid())
     {
+      // channels.clear(); tdc.clear(); adc.clear(); view.clear();
+
       std::vector<sim::SimChannel> sim_channels; 
       for(auto sim_channel : *SimChaHandle) { sim_channels.push_back(sim_channel); }
 
-      std::cout << "HERE: " << std::endl;
-
+      // std::cout << "HERE: " << std::endl;
+      // std::cout << sim_channels << std::endl;
       for(auto digit : *RawDigHandle)
       {
-        auto channel     = digit.Channel();
-        auto sim_channel = sim_channels[channel];
+        auto channel     = digit.Channel();        // channel number
+        auto sim_channel = sim_channels[channel];  // sim channel
 
-        int num_samples = digit.Samples();
-        int pedestal    = (int)digit.GetPedestal();
+        int num_samples = digit.Samples();          // number of ADC samples (TDC ticks)
+        int pedestal    = (int)digit.GetPedestal(); // pedestal value
         
         // uncompress the digits and remove the pedestal
-        std::vector<short> uncompressed(num_samples);
-        raw::Uncompress( digit.ADCs(), uncompressed, pedestal, digit.Compression());
-        for (int ii = 0; ii < num_samples; ii++) { uncompressed[ii] -= pedestal; }
+        std::vector<short> uncompressed(num_samples); // uncompressed ADC values
+        raw::Uncompress( digit.ADCs(), uncompressed, pedestal, digit.Compression()); 
+        for (int ii = 0; ii < num_samples; ii++) { uncompressed[ii] -= pedestal; } // remove pedestal
 
-        // which wire plane
-        geo::GeometryCore const* geometry_core = lar::providerFrom<geo::Geometry>();
+        geo::GeometryCore const* geometry_core = lar::providerFrom<geo::Geometry>(); // geometry provider --> which wire plane
         // std::cout << "Channel: " << channel << " View: " << geometry_core->View(channel) << std::endl;
         // std::cout << "Number of samples: " << num_samples << std::endl;
-        for(int l = 0; l < num_samples; l++)
+
+        for(int tdc_tick = 0; tdc_tick < num_samples; tdc_tick++)
         {
-          //auto const& trackIDsAndEnergy = sim_channel.TrackIDsAndEnergies(l, l);
-          if(std::abs(uncompressed[l]) > 20.0) // ADC threshold > 20
+          // auto const& trackIDsAndEnergy = sim_channel.TrackIDsAndEnergies(l, l);
+          if(std::abs(uncompressed[tdc_tick]) > 20.0) // ADC threshold > 20
           {
-            // std::cout << "l: " << l << std::endl;
-            channels.push_back(channel); 
-            // std::cout << "ch: " << channels[l] << std::endl;
-            tdc.push_back(l);
-            // std::cout << "tdc: " <<  tdc[l] << std::endl;
-            adc.push_back(uncompressed[l]);
-            // std::cout << "adc: " << adc[l] << std::endl;
-            view.push_back(geometry_core->View(channel));
-            // std::cout << "view: " << view[l] << std::endl;
+            std::vector<sim::IDE> ides = sim_channel.TrackIDsAndEnergies(tdc_tick, tdc_tick);
+            for (auto const& ide : ides)
+            {
+              // std::cout << "TrackID (sim): " << ide.trackID << std::endl;
+              int particle_id = TrackIDMap[ide.trackID];
+              // std::cout << "particle_id: " << particle_id << std::endl;
+              // std::cout << "l: " << l << std::endl;
+              channels[particle_id] = channel; 
+              // std::cout << "ch: " << channels[l] << std::endl;
+              tdc[particle_id] = tdc_tick;
+              // std::cout << "tdc: " <<  tdc[l] << std::endl;
+              adc[particle_id] =uncompressed[tdc_tick];
+              // std::cout << "adc: " << adc[l] << std::endl;
+              view[particle_id] = geometry_core->View(channel);
+              // std::cout << "view: " << view[l] << std::endl;
+            }
           }
         }
+        
+        // for (size_t i = 0; i < sim_channel.TDC_t().size(); ++i)
+        // {
+        //   int track_id = sim_channel.TDCIDEs_t()[i].trackID;
+        //   int tdc      = sim_channel.TDC_t()[i];
+        //   int adc      = sim_channel.Charge(tdc)[i];
+        //   int channel  = sim_channel.Channel();
+        //   int view     = geo->View(channel);
+        //   channels.push_back(channel);
+        //   tdc.push_back(tdc);
+        //   adc.push_back(adc);
+        //   view.push_back(view);
+        // }
       }
     }
   }
+
+  //Funciona
+  // std::map<int, int> ParentMap;
+  // std::map<int, int> AncestorMap;
+  // std::map<int, int> TrackIDMap;
+  // std::vector<std::map<int, int>> ParentMap_vector;
+  // std::vector<std::map<int, int>> AncestorMap_vector;
+  // std::vector<std::map<int, int>> TrackIDMap_vector;
+
+  // ParentMap_vector.push_back(ParentMap);
+  // AncestorMap_vector.push_back(AncestorMap);
+  // TrackIDMap_vector.push_back(TrackIDMap);
+  
+  // ParentMap.clear(); AncestorMap.clear(); TrackIDMap.clear();
+
+  // for (auto const& ParentMap : ParentMap_vector)
+  // {
+  //   for (auto const& entry : ParentMap) { std::cout << entry.first << " : " << entry.second << std::endl; }
+  // }
+
+  // esto definiendo con []
+  // ParentMap_vector[fEventID] = ParentMap;
+  // AncestorMap_vector[fEventID] = AncestorMap;
+  // TrackIDMap_vector[fEventID] = TrackIDMap;
+
+  // for(auto const& [key, value] : ParentMap)   { 
+  //   ParentMap_keys_aux.push_back(key);   ParentMap_values_aux.push_back(value); 
+  //   std::cout << "ParentMap_keys " << key << " : " << value << std::endl;
+  //   }
+  // for(auto const& [key, value] : AncestorMap) { 
+  //   AncestorMap_keys_aux.push_back(key); AncestorMap_values_aux.push_back(value); 
+  //   // std::cout << "AncestorMap_keys " << key << " : " << value << std::endl;
+  //   }
+  // for(auto const& [key, value] : TrackIDMap)  { 
+  //   TrackIDMap_keys_aux.push_back(key);  TrackIDMap_values_aux.push_back(value); 
+  //   // std::cout << "TrackIDMap_keys " << key << " : " << value << std::endl; 
+  //   }
+
+
+  // ParentMap_keys  .push_back(ParentMap_keys_aux.data()); 
+  // ParentMap_values.push_back(ParentMap_values_aux.data());
+
+  // AncestorMap_keys  [fEventID-1].push_back(AncestorMap_keys_aux.data());
+  // AncestorMap_values[fEventID-1].push_back(AncestorMap_values_aux.data());
+  // TrackIDMap_keys   [fEventID-1].push_back(TrackIDMap_keys_aux.data());
+  // TrackIDMap_values [fEventID-1].push_back(TrackIDMap_values_aux.data());
+
+
+  // for (auto const& value : ParentMap_keys)
+  // {
+  //   std::cout << "TrackIDMap_keys2 " << value << std::endl; 
+  // }
+
+  // ParentMap.clear(); AncestorMap.clear(); TrackIDMap.clear();
+  // ParentMap_keys_aux.clear(); AncestorMap_keys_aux.clear(); TrackIDMap_keys_aux.clear();
+  // ParentMap_values_aux.clear(); AncestorMap_values_aux.clear(); TrackIDMap_values_aux.clear();
+
   fTree->Fill();
 
 }// analyze()
