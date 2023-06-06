@@ -3,6 +3,8 @@ BEGIN_PROLOG
 my_analysis : #Your chosen name for this parameter set 
 {
   module_type  :      "MyAnalysis" #Links the fhicl file to the analysis module using the name you gave your analyzer class
+  TreesToWrite: [["Truth"], ["DetSim"]]
+
   #Input for the module: ["MODULE LABEL", "INSTANCE NAME", "PRODUCT TYPE", "OUTPUT TREE NAME"]
   
   ### DUNE FD 1x2x6 mysingles ###
