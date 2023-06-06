@@ -3,28 +3,33 @@ BEGIN_PROLOG
 my_analysis : #Your chosen name for this parameter set 
 {
   module_type  :      "MyAnalysis" #Links the fhicl file to the analysis module using the name you gave your analyzer class
-  TruthLabel:		      "largeant"
+  #Input for the module: ["MODULE LABEL", "INSTANCE NAME", "PRODUCT TYPE", "OUTPUT TREE NAME"]
   
-  # DUNE FD 1x2x6 mymuon#
-  # EdepLabel:          "IonAndScint"
-  # InstanceName :      ""
-  # DetSimLabel:        "tpcrawdecoder"
-  # RawDigInstance:     "daq"
-  # SimChaInstance:     "simpleSC"
+  ### DUNE FD 1x2x6 mysingles ###
+  # ProductsToDump: [
+  #                   ["largeant",      "",           "simb::MCParticle",         "G4_MCtruth"],  # Gen:    Montecarlo truth info from Generator Stage (particle PDG, original positions... etc)
+  #                   ["IonAndScint",   "",           "sim::SimEnergyDeposit",    "EDep"]         # Edep:   Energy deposited in the detector
+  #                   # ["tpcrawdecoder", "daq",        "raw::RawDigit",            "RawDetSim"]    # DetSim: 
+  #                   # ["tpcrawdecoder", "simpleSC",   "sim::SimChannel",          "SimDetSim"]    # DetSim: 
+  #                 ]
   
-  # ProtoDUNE-SP  mymuon#
-  EdepLabel:           "largeant"
-  InstanceName :       "LArG4DetectorServicevolTPCActiveInner"
-  DetSimLabel:         "tpcrawdecoder"
-  RawDigInstance:      "daq"
-  SimChaInstance:      "simpleSC"
-  
-  # ProtoDUNE-SP  singlepion#
-  # EdepLabel:           "largeant"
-  # InstanceName :       "priorSCE"
-  
-  # TruthLabel:		       "generator"
-  
+  ### ProtoDUNE-SP  mysingles ###
+  # ProductsToDump: [
+  #                   ["largeant",   "",                                                "simb::MCParticle",         "G4_MCtruth"],  # Gen:    Montecarlo truth info from Generator Stage (particle PDG, original positions... etc)
+  #                   ["largeant",   "LArG4DetectorServicevolTPCActiveInner",           "sim::SimEnergyDeposit",    "EDep"]         # Edep:   Energy deposited in the detector
+                    # ["tpcrawdecoder", "daq",        "raw::RawDigit",            "RawDetSim"]    # DetSim: 
+                    # ["tpcrawdecoder", "simpleSC",   "sim::SimChannel",          "SimDetSim"]    # DetSim: 
+                  # ]
+
+
+  ### ProtoDUNE-SP  singlepion ###
+    ProductsToDump: [
+                    ["largeant",      "",           "simb::MCParticle",         "G4_MCtruth"],  # Gen:    Montecarlo truth info from Generator Stage (particle PDG, original positions... etc)
+                    ["IonAndScint",   "priorSCE",   "sim::SimEnergyDeposit",    "EDep"]         # Edep:   Energy deposited in the detector
+                    # ["tpcrawdecoder", "daq",        "raw::RawDigit",            "RawDetSim"]    # DetSim: 
+                    # ["tpcrawdecoder", "simpleSC",   "sim::SimChannel",          "SimDetSim"]    # DetSim: 
+                  ]
+
   RollUpUnsavedIDs:	  "true" 
 }
 
