@@ -1,0 +1,20 @@
+
+#include "services_dune.fcl"
+#include "OpAnalyzer.fcl"
+
+process_name: RunMyAnalysis 
+services: {
+    @table::dunefd_services   
+    TFileService: {fileName: "OpAnalyzer.root"}
+    TimeTracker:  {}
+    FileCatalogMetadata: @local::art_file_catalog_mc
+                         @table::dunefdvd_1x8x6_3view_services
+} 
+
+physics: {   
+    analyzers: { 
+        myanalysis: @local::op_analyzer 
+    }   
+    ana: [ myanalysis ]   
+    end_paths: [ ana ] 
+}

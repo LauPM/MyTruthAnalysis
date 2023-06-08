@@ -1,0 +1,45 @@
+BEGIN_PROLOG
+
+op_analyzer:
+{
+  module_type:		"OpticalAnalyzer"
+  
+  #====================
+  
+#   RawDigitLabel:       "daq"		      # string for the process that made the raw digits
+#   HitLabel:		         "gaushit" 	    # string for the process that made the reco hits
+#   GEANT4Label:         "largeant"     # The label for the process which ran GEANT4
+#   ClusterModuleLabel:  "pandora"      # The label for the clusters reconstructed using pandora
+#   OpFlashLabel:        "opflash10ppm"
+#   OpHitLabel:          "ophit10ppm"
+  OpDetWaveformLabel:  "opdigi10ppm"
+  
+  # MARLEYLabel:         "marley"               # Process which produced MARLEY events
+  # Ar39Label:           "Ar39GenInLAr"         # Process which produced Argon 39 events
+  # KrLabel:             "Kr85GenInLAr"         # Process which produced Krypton events
+  # Ar42Label:           "Ar42GenInLAr"         # Process which produced Argon 42 events
+  # K42Label:            "K42From42ArGenInLAr"  # Process which produced Potasium 42 events
+  # Rn222Label:          "Rn222ChainGenInLAr"   # Process which produced Radon events
+  # K42CPALabel:         "K42From42ArGenInCPA"  # Process which produced Potasium 42 events
+  # K40CPALabel:         "K40inGenInCPA"        # Process which produced Potasium 40 events
+  # U238Label:           "U238ChainGenInCPA"    # Process which produced Polonium events
+  # Rn222PDSLabel:       "Rn222ChainGenInPDS"   # Process which produced Radon events
+  # NeutronLabel:        "NeutronGenInRock"     # Process which produced Neutron events
+  # GammaLabel:          "GammasGenInRock"      # Process which produced Gamma events
+
+  # Vector with generator labels for the particles included in the event. IMPORTANT: Keep MARLEY label in the first position!!!
+#   ParticleLabelVector: ["marley","Ar39GenInLAr","Kr85GenInLAr","Ar42GenInLAr","K42From42ArGenInLAr","Rn222ChainGenInLAr","K42From42ArGenInCPA","K40inGenInCPA","U238ChainGenInCPA","Rn222ChainGenInPDS","NeutronGenInRock","GammasGenInRock"]
+  # ParticleLabelVector: ["marley"]
+
+#   ClusterMatchMinNHit: 2             # DAQ Clusters min. hit requirement.
+#   ClusterMatchTime:    10            # Time window to look for ind. plane clusters in [tick] units.
+  
+#   AdjClusterTime:      50            # Time window to search for adj. clusters in [ick] units.
+#   AdjClusterRad:       100           # Radius to search for adj. clusters in [cm] units.
+  
+#   AdjOpFlashTime:      10000         # Time window to look for adjacent clusters in [tick] units.
+#   AdjOpFlashRad:       250           # Radius to search for adj. OpFlashes reconstructed in [cm] units.
+#   AdjOpFlashMaxPECut:  1.01          # Cut on the maximum PE OpHit contribution to the total OpFlash PE (lower limit).
+}
+
+END_PROLOG
