@@ -116,6 +116,7 @@ class ana::MyAnalysis : public art::EDAnalyzer
 
     // Declare member data here.
     std::vector<std::vector<std::string>> fProductsToDump;
+    std::vector<std::vector<std::string>> fTreesToWrite;
     const geo::Geometry* fGeom;
     bool fRollUpUnsavedIDs;
 
@@ -125,8 +126,8 @@ class ana::MyAnalysis : public art::EDAnalyzer
     // Tree information //
     //==================//
     TTree *fTruth;
-    TTree *fReco;
     TTree *fDetSim;
+    TTree *fReco;
 
     // Event Information //
     unsigned int fEvent;
@@ -134,9 +135,9 @@ class ana::MyAnalysis : public art::EDAnalyzer
     unsigned int fSubRun;
 
     static const int kNMaxMCParticles = 1000000;
+    static const int kNMaxPFParticles = 2000;
+    static const int kNMaxPFPClusters = 100;
     static const int kNViews          = 3;
-    static const int MaxChannels = 30720;
-    static const int MaxSamples  = 6000;
 
     // MC Particles //
     unsigned int fNMCParticles;
@@ -203,77 +204,91 @@ class ana::MyAnalysis : public art::EDAnalyzer
 
 
 ana::MyAnalysis::MyAnalysis(fhicl::ParameterSet const & p) : EDAnalyzer{p} //, 
-   // More initializers here.
+  // More initializers here.
 {
   art::ServiceHandle<art::TFileService> tfs;
 
-  fTruth  = tfs->make<TTree>("Truth", "Truth");
-  fReco   = tfs->make<TTree>("Reco",  "Reco");
-  fDetSim = tfs->make<TTree>("DetSim","DetSim");
-
-  debug = true;
+  std::vector<std::vector<std::string>> TreesToWrite   = p.get<std::vector<std::vector<std::string>>>("TreesToWrite");
   std::vector<std::vector<std::string>> ProductsToDump = p.get<std::vector<std::vector<std::string>>>("ProductsToDump");
+  fTreesToWrite   = TreesToWrite;
   fProductsToDump = ProductsToDump;
 
-  for (auto i : fProductsToDump)
+  std::vector<std::string> trees; 
+  int nTrees = fTreesToWrite.size();
+  for (auto t = 0; t < nTrees; t++) { auto tree = fTreesToWrite[t][0]; trees.push_back(tree); }  
+
+
+  if (std::find(trees.begin(), trees.end(), std::string("Truth")) != trees.end()) 
   {
-    auto i_label = i[0]; auto i_instance = i[1]; auto i_type = i[2]; auto o_label = i[3];
-    TString out_label = o_label;
+    fTruth  = tfs->make<TTree>("Truth", "Truth");
 
-    // Set branches: Ifs over the different types of data
-    if (i_type == "simb::MCParticle")
+    for (auto i : fProductsToDump)
     {
-      //Event branches//
-      fTruth->Branch("Event",      &fEvent,     "Event/i");
-      fTruth->Branch("Run",        &fRun,       "Run/i");
-      fTruth->Branch("subRun",     &fSubRun,    "subRun/i");
-      //MC truth branches//
-      fTruth->Branch("nMCParticles",                &fNMCParticles,               "nMCParticles/i");
-      fTruth->Branch("mcIsMCPrimary",               &fMCIsPrimary,                "MCIsPrimary[nMCParticles]/O");
-      fTruth->Branch("mcParticlePdgCode",           &fMCParticlePdgCode,          "MCParticlePdgCode[nMCParticles]/I");
-      fTruth->Branch("mcParticleTrueEnergy",        &fMCParticleTrueEnergy,       "MCParticleTrueEnergy[nMCParticles]/D");
-      fTruth->Branch("mcParticleTrackID",           &fMCParticleTrackID,          "MCParticleTrackID[nMCParticles]/I");
-      fTruth->Branch("mcParticleParentTrackID",     &fMCParticleParentTrackID,    "MCParticleParentTrackID[nMCParticles]/I");
+      auto i_label = i[0]; auto i_instance = i[1]; auto i_type = i[2]; auto o_label = i[3];
+      TString out_label = o_label;
 
-      fTruth->Branch("mcParticleStartPositionX",    &fMCParticleStartPositionX,    "MCParticleStartPositionX[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartPositionY",    &fMCParticleStartPositionY,    "MCParticleStartPositionY[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartPositionZ",    &fMCParticleStartPositionZ,    "MCParticleStartPositionZ[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartPositionT",    &fMCParticleStartPositionT,    "MCParticleStartPositionT[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartMomentumX",    &fMCParticleStartMomentumX,    "MCParticleStartMomentumX[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartMomentumY",    &fMCParticleStartMomentumY,    "MCParticleStartMomentumY[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartMomentumZ",    &fMCParticleStartMomentumZ,    "MCParticleStartMomentumZ[nMCParticles]/D");
-      fTruth->Branch("mcParticleStartMomentumE",    &fMCParticleStartMomentumE,    "MCParticleStartMomentumE[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndPositionX",      &fMCParticleEndPositionX,      "MCParticleEndPositionX[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndPositionY",      &fMCParticleEndPositionY,      "MCParticleEndPositionY[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndPositionZ",      &fMCParticleEndPositionZ,      "MCParticleEndPositionZ[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndPositionT",      &fMCParticleEndPositionT,      "MCParticleEndPositionT[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndMomentumX",      &fMCParticleEndMomentumX,      "MCParticleEndMomentumX[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndMomentumY",      &fMCParticleEndMomentumY,      "MCParticleEndMomentumY[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndMomentumZ",      &fMCParticleEndMomentumZ,      "MCParticleEndMomentumZ[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndMomentumE",      &fMCParticleEndMomentumE,      "MCParticleEndMomentumE[nMCParticles]/D");
-      
-      fTruth->Branch("mcParticleVertexTime",        &fMCParticleVertexTime,        "MCParticleVertexTime[nMCParticles]/D");
-      fTruth->Branch("mcParticleEndTime",           &fMCParticleEndTime,           "MCParticleEndTime[nMCParticles]/D");
-      
-      // ANCESTOR INFORMATION //
-      fTruth->Branch("TrackIDMap_values",  &TrackIDMap_values,  "TrackIDMap_values[nMCParticles]/I");
-      fTruth->Branch("TrackIDMap_keys",    &TrackIDMap_keys,    "TrackIDMap_keys[nMCParticles]/I");
-      fTruth->Branch("ParentMap_values",   &ParentMap_values ,  "ParentMap_values[nMCParticles]/I");
-      fTruth->Branch("ParentMap_keys",     &ParentMap_keys,     "ParentMap_keys[nMCParticles]/I");   
-      fTruth->Branch("AncestorMap_values", &AncestorMap_values, "AncestorMap_values[nMCParticles]/I");
-      fTruth->Branch("AncestorMap_keys",   &AncestorMap_keys,   "AncestorMap_keys[nMCParticles]/I");
-    }
-    else if (i_type == "sim::SimEnergyDeposit")
-    {
-      // ENERGY DEPOSITED //
-      fTruth->Branch("SimEdepTrackID",         &fSimEdepTrackID    ,"SimEdepTrackID[nMCParticles]/I");
-      fTruth->Branch("SimEdepPDGCode",         &fSimEdepPDGCode    ,"SimEdepPDGCode[nMCParticles]/I");
-      fTruth->Branch("SimEdepEnergy",          &fSimEdepE          ,"fSimEdepE[nMCParticles]/D");
-      fTruth->Branch("SimEdepMiddlePositionX", &fSimEdepX ,"SimEdepX[nMCParticles]/D");
-      fTruth->Branch("SimEdepMiddlePositionY", &fSimEdepY ,"SimEdepY[nMCParticles]/D");
-      fTruth->Branch("SimEdepMiddlePositionZ", &fSimEdepZ ,"SimEdepZ[nMCParticles]/D");
-    }
-  } //for loop over products to dump
+      // Set branches: Ifs over the different types of data
+      if (i_type == "simb::MCParticle")
+      {
+        //Event branches//
+        fTruth->Branch("Event",      &fEvent,     "Event/i");
+        fTruth->Branch("Run",        &fRun,       "Run/i");
+        fTruth->Branch("subRun",     &fSubRun,    "subRun/i");
+        //MC truth branches//
+        fTruth->Branch("nMCParticles",                &fNMCParticles,               "nMCParticles/i");
+        fTruth->Branch("mcIsMCPrimary",               &fMCIsPrimary,                "MCIsPrimary[nMCParticles]/O");
+        fTruth->Branch("mcParticlePdgCode",           &fMCParticlePdgCode,          "MCParticlePdgCode[nMCParticles]/I");
+        fTruth->Branch("mcParticleTrueEnergy",        &fMCParticleTrueEnergy,       "MCParticleTrueEnergy[nMCParticles]/D");
+        fTruth->Branch("mcParticleTrackID",           &fMCParticleTrackID,          "MCParticleTrackID[nMCParticles]/I");
+        fTruth->Branch("mcParticleParentTrackID",     &fMCParticleParentTrackID,    "MCParticleParentTrackID[nMCParticles]/I");
+        // fTruth->Branch("mcParticleNTrajectoryPoints", &fMCParticleNTrajectoryPoint, "MCParticleNTrajectoryPoint[nMCParticles]/I");
+
+        fTruth->Branch("mcParticleStartPositionX",    &fMCParticleStartPositionX,    "MCParticleStartPositionX[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartPositionY",    &fMCParticleStartPositionY,    "MCParticleStartPositionY[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartPositionZ",    &fMCParticleStartPositionZ,    "MCParticleStartPositionZ[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartPositionT",    &fMCParticleStartPositionT,    "MCParticleStartPositionT[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartMomentumX",    &fMCParticleStartMomentumX,    "MCParticleStartMomentumX[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartMomentumY",    &fMCParticleStartMomentumY,    "MCParticleStartMomentumY[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartMomentumZ",    &fMCParticleStartMomentumZ,    "MCParticleStartMomentumZ[nMCParticles]/D");
+        fTruth->Branch("mcParticleStartMomentumE",    &fMCParticleStartMomentumE,    "MCParticleStartMomentumE[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndPositionX",      &fMCParticleEndPositionX,      "MCParticleEndPositionX[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndPositionY",      &fMCParticleEndPositionY,      "MCParticleEndPositionY[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndPositionZ",      &fMCParticleEndPositionZ,      "MCParticleEndPositionZ[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndPositionT",      &fMCParticleEndPositionT,      "MCParticleEndPositionT[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndMomentumX",      &fMCParticleEndMomentumX,      "MCParticleEndMomentumX[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndMomentumY",      &fMCParticleEndMomentumY,      "MCParticleEndMomentumY[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndMomentumZ",      &fMCParticleEndMomentumZ,      "MCParticleEndMomentumZ[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndMomentumE",      &fMCParticleEndMomentumE,      "MCParticleEndMomentumE[nMCParticles]/D");
+        
+        fTruth->Branch("mcParticleVertexTime",        &fMCParticleVertexTime,        "MCParticleVertexTime[nMCParticles]/D");
+        fTruth->Branch("mcParticleEndTime",           &fMCParticleEndTime,           "MCParticleEndTime[nMCParticles]/D");
+        // fTruth->Branch("mcParticleNHits",             &fMCParticleNHits,             "MCParticleNHits[nMCParticles]/I");
+        // fTruth->Branch("mcParticleNHitsView",         &fMCParticleNHitsView,         "MCParticleNHitsView[nMCParticles][3]/I");
+        
+        // ANCESTOR INFORMATION //
+        fTruth->Branch("TrackIDMap_values",  &TrackIDMap_values,  "TrackIDMap_values[nMCParticles]/I");
+        fTruth->Branch("TrackIDMap_keys",    &TrackIDMap_keys,    "TrackIDMap_keys[nMCParticles]/I");
+        fTruth->Branch("ParentMap_values",   &ParentMap_values ,  "ParentMap_values[nMCParticles]/I");
+        fTruth->Branch("ParentMap_keys",     &ParentMap_keys,     "ParentMap_keys[nMCParticles]/I");   
+        fTruth->Branch("AncestorMap_values", &AncestorMap_values, "AncestorMap_values[nMCParticles]/I");
+        fTruth->Branch("AncestorMap_keys",   &AncestorMap_keys,   "AncestorMap_keys[nMCParticles]/I");
+      }
+      else if (i_type == "sim::SimEnergyDeposit")
+      {
+        // ENERGY DEPOSITED //
+        fTruth->Branch("SimEdepTrackID",         &fSimEdepTrackID    ,"SimEdepTrackID[nMCParticles]/I");
+        fTruth->Branch("SimEdepPDGCode",         &fSimEdepPDGCode    ,"SimEdepPDGCode[nMCParticles]/I");
+        fTruth->Branch("SimEdepEnergy",          &fSimEdepE          ,"fSimEdepE[nMCParticles]/D");
+        fTruth->Branch("SimEdepMiddlePositionX", &fSimEdepX ,"SimEdepX[nMCParticles]/D");
+        fTruth->Branch("SimEdepMiddlePositionY", &fSimEdepY ,"SimEdepY[nMCParticles]/D");
+        fTruth->Branch("SimEdepMiddlePositionZ", &fSimEdepZ ,"SimEdepZ[nMCParticles]/D");
+      }
+    } //for loop over products to dump
+  } //if truth tree
+
+  if (std::find(trees.begin(), trees.end(), std::string("DetSim")) != trees.end()) 
+  {
+    fDetSim = tfs->make<TTree>("DetSim","DetSim");
 
     fDetSim->Branch("Channels", &channel);
     fDetSim->Branch("TDCs", &tdc);
@@ -283,10 +298,10 @@ ana::MyAnalysis::MyAnalysis(fhicl::ParameterSet const & p) : EDAnalyzer{p} //,
     fDetSim->Branch("TrackIDs", &track_ids);
     fDetSim->Branch("Energy", &energy);
     fDetSim->Branch("Energies", &energies);
+  } //if detsim tree
 
   fRollUpUnsavedIDs    = p.get<bool>("RollUpUnsavedIDs"); 
   fGeom                = &*art::ServiceHandle<geo::Geometry>();
-  // this->reconfigure(p);
 } 
 
 
@@ -304,55 +319,33 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
 {
   // reset(); //Don't deep clean
 
-  struct detector_output
-        {
-            int channel   = {  };
-            int tdc       = {  };
-            int adc       = {  };
-            int view      = {  };
-            int track_id  = {-1};
-            double energy = { 0};
-
-            std::vector<int> track_ids   = {};
-            std::vector<double> energies = {};
-
-            detector_output(int _channel, int _tdc, int _adc, int _view, std::vector<sim::IDE> ides)
-            { 
-              channel = _channel;
-              tdc     = _tdc;
-              adc     = _adc;
-              view    = _view;
-              for (auto ide : ides)
-              {
-                track_ids.emplace_back(ide.trackID);
-                energies.emplace_back(ide.energy);
-                if (ide.energy > energy) 
-                {
-                  energy   = ide.energy;
-                  track_id = ide.trackID;
-                }
-              }
-            }
-        };
-
   fEvent  = evt.id().event();
   fRun    = evt.id().run();
   fSubRun = evt.id().subRun();
   std::map<int, int> fTrackIDMap; // store out of the loop for the truth_tree a map of trackID to MCParticle index
-  std::vector<detector_output> output_array; 
-
 
   std::cout << "=============== EVENT ID " << fEvent << " == RUN ID " << fRun << " == SUBRUN ID " << fSubRun << " ================" << std::endl;
-
-  for (auto i : fProductsToDump)
+  std::vector<std::string> trees; 
+  int nTrees = fTreesToWrite.size();
+  for (auto t = 0; t < nTrees; t++) 
   {
-    auto i_label = i[0]; auto i_instance = i[1]; auto i_type = i[2]; auto o_label = i[3];
-    if (debug){ std::cout << "---> Module_Label: " << i_label << ";\t Instance_Name: " << i_instance << ";\t Product_Type: " << i_type << ";\t Output_Name: " << o_label << std::endl; }
-    
-    if (std::find(trees.begin(), trees.end(), std::string("Truth")) != trees.end()) 
+    auto tree = fTreesToWrite[t][0];
+    // std::cout << "Tree: " << tree << std::endl;
+    trees.push_back(tree);
+  }  
+
+
+  //=================== =============================== Tree Truth ==================================================//
+  if (std::find(trees.begin(), trees.end(), std::string("Truth")) != trees.end()) 
+  {
+    std::cout << "... Filling Truth Tree ..." << std::endl;
+    for (auto i : fProductsToDump)
     {
+      auto i_label = i[0]; auto i_instance = i[1]; auto i_type = i[2]; auto o_label = i[3];
+    
       if (i_type == "simb::MCParticle")
       {
+        if (debug){ std::cout << "---> Module_Label: " << i_label << ";\t Instance_Name: " << i_instance << ";\t Product_Type: " << i_type << ";\t Output_Name: " << o_label << std::endl; }
         if(!evt.isRealData())
         {
           art::ValidHandle<std::vector<simb::MCParticle>> mcParticles = evt.getValidHandle<std::vector<simb::MCParticle>>(i_label);
@@ -424,129 +417,203 @@ void ana::MyAnalysis::analyze(const art::Event & evt)
           } //if mcParticles.isValid()
         } //if !evt.isRealData()
       } //if i_type == "simb::MCTruth"
-    } //if Truth is in the vector
 
-    if (std::find(trees.begin(), trees.end(), std::string("DetSim")) != trees.end()) 
-    {
-        //================================================== Tree DetSim ==================================================//
-        std::map<std::tuple<int, int, int, int>, sim::SimChannel> channels; //map with keys as a tuple of three integers and values of type sim::SimChannel
-        art::Handle<std::vector<sim::SimChannel>> SimChaHandle;
-        evt.getByLabel("tpcrawdecoder", "simpleSC", SimChaHandle);
-        // evt.getByLabel(fDetSimLabel, fSimChaInstanceLabel, SimChaHandle);
-        if(!SimChaHandle.isValid())
-        {
-          // std::cout<<"Unable to find std::vector<sim::SimChannel> with module label: " << fDetSimLabel << "; Instance: " << fSimChaInstanceLabel << std::endl;
-          std::cout<<"Unable to find std::vector<sim::SimChannel> with module label: " << "tpcrawdecoder" << "; Instance: " << "simpleSC" << std::endl;
-          return;
-        } // !DetSimHandle
+
+      // Access Deposited Energy 
+      if (i_type == "sim::SimEnergyDeposit")
+      {
+        if (debug){ std::cout << "---> Module_Label: " << i_label << ";\t Instance_Name: " << i_instance << ";\t Product_Type: " << i_type << ";\t Output_Name: " << o_label << std::endl; }
         
-        art::Handle<std::vector<raw::RawDigit>> RawDigHandle;
-        evt.getByLabel("tpcrawdecoder", "daq", RawDigHandle);
-        // evt.getByLabel(fDetSimLabel, fRawDigInstanceLabel, RawDigHandle);
-        if(!RawDigHandle.isValid())
+        art::Handle<std::vector<sim::SimEnergyDeposit>> EdepHandle;
+        evt.getByLabel(i_label, i_instance, EdepHandle);
+        if(!EdepHandle.isValid()) { std::cout<<"Unable to find std::vector<sim::SimEnergyDeposit> with module label: " << i_label << std::endl; } // !EdepHandle
+        if(EdepHandle.isValid())
         {
-          // std::cout<<"Unable to find std::vector<raw::RawDigit> with module label: " << fDetSimLabel << "; Instance: " << fRawDigInstanceLabel << std::endl;
-          std::cout<<"Unable to find std::vector<raw::RawDigit> with module label: " << "tpcrawdecoder" << "; Instance: " << "simpleSC" << std::endl;
-          return;
-        } // !RawDigHandle
-
-        if(SimChaHandle.isValid() && RawDigHandle.isValid())
-        {
-          // tdc.clear(); adc.clear(); view.clear();
-          channels.clear();
-
-          std::vector<sim::SimChannel> sim_channels; 
-          std::vector<raw::RawDigit> digits;
-
-          for(auto sim_channel : *SimChaHandle) { sim_channels.push_back(sim_channel); }
-          for(auto digit : *RawDigHandle) { digits.push_back(digit); }  // loop over all raw digits (i.e ADC counts for each channel for each time tick)
-
-          int DigsSize = digits.size();                // number of digits [DUNE-FD: 30720]
-          std::cout << "Digit has " << DigsSize << " size" << std::endl;
-          std::cout << "Digit has " << digits[0].Samples() << " samples" << std::endl;
-          std::cout << "Digit has " << (int)digits[0].GetPedestal() << " pedestal" << std::endl;
-
-          for (int dig=0; dig<DigsSize; dig++)
+          for(auto edep : *EdepHandle) 
           {
-            // Processing each channel and tick.
-            int channel  = digits[dig].Channel(); // channel number
-            int NSamples = digits[dig].Samples();          // number of ADC samples (TDC ticks) [DUNE-FD: 6000]
-            int pedestal = (int)digits[dig].GetPedestal(); // pedestal value [DUNE-FD: 2350]
+            int particle_id = fTrackIDMap[edep.TrackID()];
+            fSimEdepTrackID[particle_id] = edep.TrackID();
+            fSimEdepPDGCode[particle_id] = edep.PdgCode();
+            fSimEdepX      [particle_id] = edep.MidPointX();
+            fSimEdepY      [particle_id] = edep.MidPointY();
+            fSimEdepZ      [particle_id] = edep.MidPointZ();
+            fSimEdepE      [particle_id] = edep.E();
+          } // for(auto edep : *EdepHandle)
+        } // EdepHandle.isValid()  
+      } //if i_type == "sim::SimEnergyDeposit"
+    } //for loop over products to dump
+  
+  fTruth->Fill();
 
-            // uncompress the digits and remove the pedestal
-            std::vector<short> uncompressed(NSamples); // uncompressed ADC values
-            raw::Uncompress( digits[dig].ADCs(), uncompressed, pedestal, digits[dig].Compression()); 
+  } //if Truth is in the vector
 
-            for (int tick=0; tick<NSamples; tick++)
-            {
-              geo::GeometryCore const* geometry_core = lar::providerFrom<geo::Geometry>(); // geometry provider --> which wire plane
-              if(std::abs(uncompressed[tick]) > 20.0) // ADC threshold > 20
+
+  //================================================== Tree DetSim ==================================================//
+  if (std::find(trees.begin(), trees.end(), std::string("DetSim")) != trees.end()) 
+  {
+    std::cout << "... Filling DetSim Tree ..." << std::endl;
+
+    struct detector_output
+          {
+            int channel   = {  };
+            int tdc       = {  };
+            int adc       = {  };
+            int view      = {  };
+            int track_id  = {-1};
+            double energy = { 0};
+
+            std::vector<int> track_ids   = {};
+            std::vector<double> energies = {};
+
+            detector_output(int _channel, int _tdc, int _adc, int _view, std::vector<sim::IDE> ides)
+            { 
+              channel = _channel;
+              tdc     = _tdc;
+              adc     = _adc;
+              view    = _view;
+              for (auto ide : ides)
               {
-                auto sim_channel = sim_channels[channel]; // sim channel
-                
-                std::vector<sim::IDE> ides = sim_channel.TrackIDsAndEnergies(tick, tick);
-                for (auto const& ide : ides) 
+                track_ids.emplace_back(ide.trackID);
+                energies.emplace_back(ide.energy);
+                if (ide.energy > energy) 
                 {
-                  int particle_id = fTrackIDMap[ide.trackID];
-                  view = geometry_core->View(channel);
-                  std::tuple<int, int, int, int> key(channel, tick, particle_id, view);
-                  channels[key] = sim_channel;
-                  // Print the values being added to the channels map
-                  // std::cout << "Added to channels map: Channel=" << channel
-                  // << " Tick=" << tick << " ParticleID=" << particle_id << std::endl;
+                  energy   = ide.energy;
+                  track_id = ide.trackID;
                 }
               }
             }
-          } // for (int dig=0; dig<DigsSize; dig++)
+          };
+          
+    std::vector<detector_output> output_array; // vector of detector_output objects
 
-          if (channels.empty())  { std::cout << "WARNING channels empty"   << std::endl; }
-          if (!channels.empty()) { std::cout << "GREAT channels not empty" << std::endl; }
+    art::Handle<std::vector<raw::RawDigit>> RawDigHandle;
+    art::Handle<std::vector<sim::SimChannel>> SimChaHandle;
+    for (auto i : fProductsToDump)
+    {
+      auto i_label = i[0]; auto i_instance = i[1]; auto i_type = i[2]; auto o_label = i[3];
+    
+      if (i_type == "raw::RawDigit")
+      {
+        if (debug){ std::cout << "---> Module_Label: " << i_label << ";\t Instance_Name: " << i_instance << ";\t Product_Type: " << i_type << ";\t Output_Name: " << o_label << std::endl; }
+        evt.getByLabel(i_label, i_instance, RawDigHandle);
 
-          for (const auto& entry : channels) //iterates over each entry in the channels map
+        if(!RawDigHandle.isValid())
+        {
+          std::cout<<"Unable to find std::vector<raw::RawDigit> with module label: " << i_label << "; Instance: " << i_instance << std::endl;
+          return;
+        } // !RawDigHandle
+      }
+
+      if (i_type == "sim::SimChannel")
+      {
+        if (debug){ std::cout << "---> Module_Label: " << i_label << ";\t Instance_Name: " << i_instance << ";\t Product_Type: " << i_type << ";\t Output_Name: " << o_label << std::endl; }
+        evt.getByLabel(i_label, i_instance, SimChaHandle);
+
+        if(!SimChaHandle.isValid())
+        {
+          std::cout<<"Unable to find std::vector<sim::SimChannel> with module label: " << i_label << "; Instance: " << i_instance << std::endl;
+          return;
+        } // !DetSimHandle
+      }
+    } //for loop over products to dump
+
+    std::map<std::tuple<int, int, int, int>, sim::SimChannel> channels; //map with keys as a tuple of three integers and values of type sim::SimChannel
+    if(SimChaHandle.isValid() && RawDigHandle.isValid())
+    {
+      std::vector<sim::SimChannel> sim_channels; 
+      std::vector<raw::RawDigit> digits;
+
+      for(auto sim_channel : *SimChaHandle) { sim_channels.push_back(sim_channel); }
+      for(auto digit : *RawDigHandle)       { digits.push_back(digit); }  // loop over all raw digits (i.e ADC counts for each channel for each time tick)
+      // There are 15360 channels in the ProtoDUNE-SP detector.
+      // RawDigit is the raw data from the detector. SimChannel is the simulated data from the detector.
+      // RawDigit is the output of the electronics chain. SimChannel is the output of the simulation chain.
+      // RawDigit is the ADC counts for each channel for each time tick. SimChannel is the number of electrons
+      // that were deposited in each channel for each time tick.
+      
+      int DigsSize = digits.size(); // number of digits [DUNE-FD: 30720]
+      std::cout << "Digit has " << DigsSize << " size" << std::endl;
+      std::cout << "Digit has " << digits[0].Samples() << " samples" << std::endl;
+      std::cout << "Digit has " << (int)digits[0].GetPedestal() << " pedestal" << std::endl;
+
+      for (int dig=0; dig<DigsSize; dig++)
+      {
+        // Processing each channel and tick.
+        int channel  = digits[dig].Channel();          // channel number
+        int NSamples = digits[dig].Samples();          // number of ADC samples (TDC ticks) [DUNE-FD: 6000]
+        int pedestal = (int)digits[dig].GetPedestal(); // pedestal value [DUNE-FD: 2350]
+
+        // uncompress the digits and remove the pedestal
+        std::vector<short> uncompressed(NSamples); // uncompressed ADC values
+        raw::Uncompress( digits[dig].ADCs(), uncompressed, pedestal, digits[dig].Compression()); 
+
+        for (int tick=0; tick<NSamples; tick++)
+        {
+          geo::GeometryCore const* geometry_core = lar::providerFrom<geo::Geometry>(); // geometry provider --> which wire plane
+          if(std::abs(uncompressed[tick]) > 20.0) // ADC threshold > 20
           {
-            int channel, tick, particle_id, view;
-            std::tie(channel, tick, particle_id, view) = entry.first;  //unpacks the tuple into the three variables
-            const sim::SimChannel& sim_channel         = entry.second; //unpacks the sim channel into the variable
+            auto sim_channel = sim_channels[channel]; // sim channel
+            
+            std::vector<sim::IDE> ides = sim_channel.TrackIDsAndEnergies(tick, tick);
+            for (auto const& ide : ides) 
+            {
+              int particle_id = fTrackIDMap[ide.trackID];
+              view = geometry_core->View(channel);
+              std::tuple<int, int, int, int> key(channel, tick, particle_id, view);
+              channels[key] = sim_channel;
+              // Print the values being added to the channels map
+              // std::cout << "Added to channels map: Channel=" << channel
+              // << " Tick=" << tick << " ParticleID=" << particle_id << std::endl;
+            } // for (auto const& ide : ides)
+          } // if(std::abs(uncompressed[tick]) > 20.0)
+        } // for (int tick=0; tick<NSamples; tick++)
+      } // for (int dig=0; dig<DigsSize; dig++)
 
-            output_array.emplace_back(channel, tick, particle_id, view, sim_channel.TrackIDsAndEnergies(tick, tick)); //creates a new entry in the output array
-          }
-        } // if(SimChaHandle.isValid() && RawDigHandle.isValid())
-    } // if (tree == "DetSim")
+      if (channels.empty())  { std::cout << "WARNING channels empty"   << std::endl; }
+      if (!channels.empty()) { std::cout << "GREAT channels not empty" << std::endl; }
 
-  } // fProductsToDump loop
+      for (const auto& entry : channels) //iterates over each entry in the channels map
+      {
+        int channel, tick, particle_id, view;
+        std::tie(channel, tick, particle_id, view) = entry.first;  //unpacks the tuple into the three variables
+        const sim::SimChannel& sim_channel         = entry.second; //unpacks the sim channel into the variable
 
-
-  fTruth->Fill();
-
-  for (const auto& output : output_array) 
-  {
-    // Access the components of each detector_output struct
-    channel   = output.channel;
-    tdc       = output.tdc;
-    adc       = output.adc;
-    view      = output.view;
-    track_id  = output.track_id;
-    energy    = output.energy;
-    track_ids = output.track_ids;
-    energies  = output.energies;
+        output_array.emplace_back(channel, tick, particle_id, view, sim_channel.TrackIDsAndEnergies(tick, tick)); //creates a new entry in the output array
+      }
+    } // if(SimChaHandle.isValid() && RawDigHandle.isValid())
     
-    fDetSim->Fill();
-    
-    // Print or use the components as needed
-    // std::cout << "Channel: " << channel << std::endl;
-    // std::cout << "TDC: " << tdc << std::endl;
-    // std::cout << "ADC: " << adc << std::endl;
-    // std::cout << "Track ID: " << track_id << std::endl;
-    // std::cout << "Energy: " << energy << std::endl;
-    // // Print the track IDs
-    // std::cout << "Track IDs: ";
-    // for (int track : track_ids) { std::cout << track << " "; }
-    // std::cout << std::endl;
-    // // Print the energies
-    // std::cout << "Energies: ";
-    // for (double e : energies) { std::cout << e << " "; }
-    // std::cout << std::endl;
-  } // for (const auto& output : output_array)
+    for (const auto& output : output_array) 
+    {
+      // Access the components of each detector_output struct
+      channel   = output.channel;
+      tdc       = output.tdc;
+      adc       = output.adc;
+      view      = output.view;
+      track_id  = output.track_id;
+      energy    = output.energy;
+      track_ids = output.track_ids;
+      energies  = output.energies;
+      
+      fDetSim->Fill();
+      
+      // Print or use the components as needed
+      // std::cout << "Channel: " << channel << std::endl;
+      // std::cout << "TDC: " << tdc << std::endl;
+      // std::cout << "ADC: " << adc << std::endl;
+      // std::cout << "Track ID: " << track_id << std::endl;
+      // std::cout << "Energy: " << energy << std::endl;
+      // // Print the track IDs
+      // std::cout << "Track IDs: ";
+      // for (int track : track_ids) { std::cout << track << " "; }
+      // std::cout << std::endl;
+      // // Print the energies
+      // std::cout << "Energies: ";
+      // for (double e : energies) { std::cout << e << " "; }
+      // std::cout << std::endl;
+    } // for (const auto& output : output_array)
+
+  } // if (tree == "DetSim")
+
 
 }// analyze()
 
