@@ -27,7 +27,8 @@ lar -c run_mytruthanalysis.fcl -s <input_file> -n <number_of_events>
 ```
 
 ## Output example
-
+ROOT file with the analyzed Trees:
+![Alt text](output.png)
 
 ## TODO
 
