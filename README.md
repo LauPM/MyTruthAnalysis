@@ -38,7 +38,7 @@ mrbsetenv
 ## How to use
 
 ```bash
-lar -c run_mytruthanalysis.fcl -s <input_file> -n <number_of_events>
+lar -c run_MyAnalysis.fcl -s <input_file> -n <number_of_events>
 ```
 
 ## Output example
