@@ -12,25 +12,25 @@ source:
 }
 
 ## DUNE FD geometry ##
-services: 
-{
-    @table::dunefd_services   
-    TFileService: {fileName: "MyAnalysis.root"} # Output filename
-    TimeTracker:  {}
-    FileCatalogMetadata: @local::art_file_catalog_mc
-    Geometry:            @local::dune10kt_1x2x6_geo 
-                         @table::dunefd_1x2x6_simulation_services
-} 
-
-# ProtoDUNE I geometry ##
 # services: 
 # {
+#     @table::dunefd_services   
 #     TFileService: {fileName: "MyAnalysis.root"} # Output filename
 #     TimeTracker:  {}
 #     FileCatalogMetadata: @local::art_file_catalog_mc
-#     Geometry:            @local::protodunev7_geo 
-#                          @table::protodune_services 
+#     Geometry:            @local::dune10kt_1x2x6_geo 
+#                          @table::dunefd_1x2x6_simulation_services
 # } 
+
+# ProtoDUNE I geometry ##
+services: 
+{
+    TFileService: {fileName: "MyAnalysis.root"} # Output filename
+    TimeTracker:  {}
+    FileCatalogMetadata: @local::art_file_catalog_mc
+    Geometry:            @local::protodunev7_geo 
+                         @table::protodune_services 
+} 
 
 
 physics: 
